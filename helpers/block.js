@@ -5,17 +5,18 @@ const path = require('path')
 const fs = require('fs')
 const pad = require('pad')
 const inquirer = require('inquirer')
-const colors = require('colors')
+const chalk = require('chalk')
+const { logError } = require('../utils/logging')
 let WS_CONNECTION_STATE = {
   CONNECTING: 1,
   CONNECTED: 2,
   DISCONNECTED: 3
 }
 
-
 const FormData = require('form-data'); // npm install --save form-data
 
 let wsState = WS_CONNECTION_STATE.DISCONNECTED
+let lastEventType = null
 
 module.exports.createBlock = async (body, token) => {
   const createRes = await axios.post(`${BLOCK_API_URL}/block/create`, body, {
@@ -30,10 +31,43 @@ module.exports.createBlock = async (body, token) => {
   throw new Error('Unable to create block.')
 }
 
-module.exports.getBlockData = async (fileId, token) => {
+module.exports.publishBlock = async (fileId, title, description, tags, iconUrl, token) => {
+  const publishRes = await axios.post(`${BLOCK_API_URL}/project/makepublic`, {
+    project_id: fileId,
+    title,
+    description,
+    tags,
+    icon_url: iconUrl
+  }, {
+    headers: {
+      'x-access-token': token,
+      'Content-Type': 'application/json'
+    }
+  })
+  if (publishRes && publishRes.data) {
+    return publishRes.data
+  }
+  throw new Error('Unable to publish block.')
+}
+
+module.exports.updateBlockMetaData = async (blockId, updateData, token) => {
+  return await axios.post(`${BLOCK_API_URL}/project/updatemetadata`, {
+    project_id: blockId,
+    ...updateData
+  }, {
+    headers: {
+      'x-access-token': token,
+      'Content-Type': 'application/json'
+    }
+  })
+}
+
+module.exports.getBlockData = async (fileId, projectName, username, token) => {
   const blockData = await axios.post(`${BLOCK_API_URL}/project/get2`, {
     project_id: fileId,
-    is_from_filesystem: true
+    is_from_filesystem: true,
+    project_name: projectName,
+    username
   }, {
     headers: {
       'x-access-token': token,
@@ -117,26 +151,34 @@ const saveBlockFile = async (blockId, filePath, filePatch, token) => {
 }
 
 module.exports.pullChanges = async (blockId, blockPath, basePath, token, isFile) => {
-  if (isFile) {
-    const fileData = await this.blockFileOperation(blockId, basePath, 'get', token)
-    fs.mkdirSync(path.dirname(path.join(blockPath, basePath)), { recursive: true })
-    fs.writeFileSync(path.join(blockPath, basePath), fileData, { encoding: 'utf8' })
-  } else {
-    const dirData = await this.blockDirOperation(blockId, basePath, 'get', token)
-    fs.mkdirSync(path.join(blockPath, basePath), { recursive: true })
-    for (let i = 0; i < dirData.length; i++) {
-      if (dirData[i].type === 0) {
-        const fileData = await this.blockFileOperation(blockId, dirData[i].path, 'get', token)
-        fs.mkdirSync(path.dirname(path.join(blockPath, dirData[i].path)), { recursive: true })
-        fs.writeFileSync(path.join(blockPath, dirData[i].path), fileData, { encoding: 'utf8' })
-      } else if (dirData[i].type === 1) {
-        await this.pullChanges(blockId, blockPath, dirData[i].path, token)
+  // check this code for pull changes
+  if (!(SYNC_IGNORE_PATH.includes(basePath))) {
+    if (isFile) {
+      const fileData = await this.blockFileOperation(blockId, basePath, 'get', token)
+      fs.mkdirSync(path.dirname(path.join(blockPath, basePath)), { recursive: true })
+      fs.writeFileSync(path.join(blockPath, basePath), fileData, { encoding: 'utf8' })
+    } else {
+      const dirData = await this.blockDirOperation(blockId, basePath, 'get', token)
+
+      fs.mkdirSync(path.join(blockPath, basePath), { recursive: true })
+      for (let i = 0; i < dirData.length; i++) {
+        if (dirData[i].type === 0) {
+          const fileData = await this.blockFileOperation(blockId, dirData[i].path, 'get', token)
+          fs.mkdirSync(path.dirname(path.join(blockPath, dirData[i].path)), { recursive: true })
+          fs.writeFileSync(path.join(blockPath, dirData[i].path), fileData, { encoding: 'utf8' })
+        } else if (dirData[i].type === 1) {
+          await this.pullChanges(blockId, blockPath, dirData[i].path, token)
+        }
       }
     }
   }
 }
 
 module.exports.pushChanges = async (blockId, blockPath, basePath, token) => {
+  if (SYNC_IGNORE_PATH.includes(basePath)) {
+    return
+  }
+
   const dirData = await this.blockDirOperation(blockId, basePath, 'get', token)
   let fileList = []
   let dirList = []
@@ -147,10 +189,13 @@ module.exports.pushChanges = async (blockId, blockPath, basePath, token) => {
     } else {
       dirList.push(d.name)
     }
-  });
+  })
 
   const localDirData = fs.readdirSync(path.join(blockPath, basePath))
   for (let i = 0; i < localDirData.length; i++) {
+    if (SYNC_IGNORE_PATH.includes(path.join(basePath, localDirData[i]))) {
+      continue
+    }
     const stat = fs.statSync(path.join(blockPath, basePath, localDirData[i]))
     if (stat.isDirectory()) {
       if (dirList.includes(localDirData[i])) {
@@ -284,6 +329,14 @@ module.exports.initializeBlock = (projectId, deviceId, token, options) => {
         if (message.type === 'utf8') {
           const data = JSON.parse(message.utf8Data)
 
+          if ([3, 4, 5].includes(data.type)) {
+            if (data.type === 3) {
+              console.log(data.data)
+            } else {
+              logError(new Error(data.data))
+            }
+          }
+
           if (data.type === 9 && data.success) {
             wsState = WS_CONNECTION_STATE.CONNECTED
             resolve(connection)
@@ -294,25 +347,27 @@ module.exports.initializeBlock = (projectId, deviceId, token, options) => {
             }))
           }
           if (data.type === 26) {
-            console.log('\n')
-            console.log('INPUTS')
-            console.log('------------------')
-            Object.keys(data.inputs).forEach(key => {
-              console.log(pad(colors.grey(key), 30), data.inputs[key])
-            })
-            console.log('\n')
-            console.log('OUTPUT')
-            console.log('------------------')
-            Object.keys(data.output).forEach(key => {
-              console.log(pad(colors.grey(key), 30), data.output[key])
-            })
+            if (lastEventType === 24) {
+              console.log('\n')
+              console.log('INPUTS')
+              console.log('------------------')
+              Object.keys(data.inputs).forEach(key => {
+                console.log(pad(chalk.grey(key), 30), data.inputs[key])
+              })
+              console.log('\n')
+              console.log('OUTPUT')
+              console.log('------------------')
+              Object.keys(data.output).forEach(key => {
+                console.log(pad(chalk.grey(key), 30), data.output[key])
+              })
+            }
             connection.close()
           }
         }
       })
     })
 
-    client.connect(`${BLOCK_WS_URL}/compiler/?token=${token}&id=${projectId}&fs=${true}&type=1x&did=${deviceId}`, 'echo-protocol');
+    client.connect(`${BLOCK_WS_URL}/compiler/?token=${token}&id=${projectId}&fs=${true}&type=1x&did=${deviceId}`, 'echo-protocol')
   })
 }
 
@@ -323,10 +378,20 @@ module.exports.closeConnection = (connection) => {
 }
 
 module.exports.sendRunEvent = (block, inputs, connection) => {
+  lastEventType = 24
   const data = {
     type: 24,
     block,
     inputs
+  }
+  connection.send(JSON.stringify(data))
+}
+
+module.exports.sendRunCommandEvent = (connection, commandPosition) => {
+  lastEventType = 25
+  const data = {
+    type: 25,
+    position: commandPosition
   }
   connection.send(JSON.stringify(data))
 }

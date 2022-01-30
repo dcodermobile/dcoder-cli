@@ -1,6 +1,6 @@
-const colors = require('colors')
 const { getConnectedOauthList } = require('../helpers/oAuth')
 const { userAuthCheck } = require('../middlewares/user')
+const { logError } = require('../utils/logging')
 
 module.exports.getMyAuths = async () => {
   try {
@@ -12,13 +12,9 @@ module.exports.getMyAuths = async () => {
       structDatas.push({ Name: myAuthList[i].name, 'Creation date': new Date(myAuthList[i].createdAt).toLocaleString() })
     }
 
-    console.table(structDatas);
+    console.table(structDatas)
   } catch (err) {
-    if (err.response && err.response.data) {
-      console.error(colors.red(err.response.data.message))
-    } else {
-      console.error(colors.red(err.message))
-    }
-    console.log(colors.red('Unable to get authentications list, please try again after some time.'))
+    logError(err)
+    logError(new Error('Unable to get authentications list, please try again after some time.'))
   }
 }

@@ -1,9 +1,9 @@
 const inquirer = require('inquirer')
 const axios = require('axios')
-const colors = require('colors')
 const { API_URL, CRED_FILE_PATH } = require('../configs/config')
 const fs = require('fs')
 const path = require('path')
+const { logError, logSuccess } = require('../utils/logging')
 
 module.exports.userLogin = () => {
   inquirer
@@ -21,7 +21,7 @@ module.exports.userLogin = () => {
     ])
     .then(async (answers) => {
       if (!answers.email || !answers.password) {
-        console.log(colors.red('Email or password can not be left empty'))
+        logError(new Error('Email or password can not be left empty'))
         return
       }
 
@@ -39,16 +39,13 @@ module.exports.userLogin = () => {
           }
           fs.mkdirSync(path.dirname(CRED_FILE_PATH), { recursive: true })
           fs.writeFileSync(CRED_FILE_PATH, JSON.stringify(fileData), { encoding: 'utf8' })
-          console.log(colors.green(res.data.message))
+          logSuccess(res.data.message)
         } else {
-          console.log(colors.red('Unable to login, please try again after some time.'))
+          logError(new Error('Unable to login, please try again after some time.'))
         }
       }).catch(err => {
-        if (err && err.response && err.response.data && err.response.data.message) {
-          console.log(colors.red(err.response.data.message))
-        } else {
-          console.log(colors.red('Unable to login, please try again after some time.'))
-        }
+        logError(err)
+        logError(new Error('Unable to login, please try again after some time.'))
       })
       // Use user feedback for... whatever!!
     })

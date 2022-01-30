@@ -79,12 +79,15 @@ module.exports.getBlockOAuths = async (fileId, token) => {
   return blockAuths.data
 }
 
-module.exports.getAllOAuthApps = async (token) => {
+module.exports.getAllOAuthApps = async (token, appIdentifiers) => {
   let page = 1
   let pageCount = 1
   let authAppList = []
   while (page <= pageCount) {
-    const authAppRes = await axios.post(`${API_URL}/oauth/getalloauthapps`, { page }, {
+    const authAppRes = await axios.post(`${API_URL}/oauth/getalloauthapps`, {
+      page,
+      ...(appIdentifiers && appIdentifiers.length > 0 && { app_identifiers: appIdentifiers })
+    }, {
       headers: {
         'x-access-token': token,
         'Content-Type': 'application/json'
