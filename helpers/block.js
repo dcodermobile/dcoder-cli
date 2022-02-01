@@ -1,5 +1,5 @@
 const axios = require('axios')
-const { BLOCK_API_URL, BLOCK_WS_URL, SYNC_IGNORE_PATH } = require('../configs/config')
+const { BLOCK_API_URL, BLOCK_WS_URL, SYNC_IGNORE_PATH, API_URL, BLOCK_FS_RESOURCE_TYPE, APP_VERSION_CODE } = require('../configs/config')
 const WebSocketClient = require('websocket').client
 const path = require('path')
 const fs = require('fs')
@@ -75,6 +75,29 @@ module.exports.getBlockData = async (fileId, projectName, username, token) => {
     }
   })
   return blockData.data
+}
+
+module.exports.getExistingBlockList = async (token) => {
+  let page = 1
+  let pageCount = 1
+  let blockList = []
+
+  while (page <= pageCount) {
+    const blockDocs = await axios.post(`${API_URL}/userfiles/filesystem2`, {
+      page: 1,
+      version_code: APP_VERSION_CODE,
+      fs_resource_type: BLOCK_FS_RESOURCE_TYPE
+    }, {
+      headers: {
+        'x-access-token': token,
+        'Content-Type': 'application/json'
+      }
+    })
+    blockList = blockList.concat(blockDocs.data.data)
+    pageCount = blockDocs.data.pages
+    page++
+  }
+  return blockList
 }
 
 module.exports.setBlockActiveDevice = async (fileId, deviceId, token) => {

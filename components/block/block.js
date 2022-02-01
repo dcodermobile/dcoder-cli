@@ -8,7 +8,7 @@ const { userAuthCheck } = require('../../middlewares/user')
 const { blockStatusCheck } = require('../../middlewares/block')
 const { BLOCK_INFO_FILE_PATH, BLOCK_FILE_PATH, BLOCK_INFO_FILE_RELATIVE_PATH, BLOCK_RUN_FILE_NAME, BLOCK_RUN_FILE_TEMPLATE_TEXT, BLOCK_FILE_NAME, BLOCK_FILE_TEMPLATE_TEXT, BLOCK_MAIN_FILE_TEMPLATE_TEXT, BLOCK_MAIN_FILE_NAME } = require('../../configs/config')
 const { getConnectedOauthList, addTokenToBlock, getAllOAuthApps, getBlockOAuths, unlinkBlockToken, getOAuthUrl } = require('../../helpers/oAuth')
-const { initializeBlock, closeConnection, pullChanges, pushChanges, sendRunEvent, syncChanges, createBlock, getBlockData, setBlockActiveDevice, publishBlock, updateBlockMetaData } = require('../../helpers/block')
+const { initializeBlock, closeConnection, pullChanges, pushChanges, sendRunEvent, syncChanges, createBlock, getBlockData, setBlockActiveDevice, publishBlock, updateBlockMetaData, getExistingBlockList } = require('../../helpers/block')
 
 module.exports.createBlock = async (args) => {
   const blockPath = process.cwd()
@@ -208,11 +208,11 @@ module.exports.syncBlockChanges = async (args, errorRethrow, preserveSocketConne
 
       const userRes = await inquirer.prompt([{ name: 'syncDeviceId', message: 'Looks like there are some changes as sync was active on another device, Do you want to accept changes of that device or current device?', type: 'list', choices: choiceList }])
       syncDeviceId = userRes.syncDeviceId
-      await setBlockActiveDevice(blockId, currentDeviceId, token)
     }
 
     logSuccess('Initialising connection...')
     connection = await initializeBlock(blockId, currentDeviceId, token)
+    await setBlockActiveDevice(blockId, currentDeviceId, token)
     logSuccess('Connection established successfully.')
     logSuccess('Syncing changes...')
 
@@ -253,7 +253,7 @@ module.exports.runBlock = async (args) => {
           type: 'input',
           name: inp.name,
           message: `${inp.name}(${inp.description}) \n`,
-          default: inp.value
+          default: inp.default
         })
       })
 
@@ -264,6 +264,54 @@ module.exports.runBlock = async (args) => {
   } catch (err) {
     logError(err)
     logError(new Error('Unable to run block, please try again after some time.'))
+  }
+}
+
+module.exports.initExistingBlock = async () => {
+  let connection = null
+  try {
+    const blockPath = process.cwd()
+    const token = userAuthCheck()
+
+    const dirList = fs.readdirSync(blockPath)
+    if (dirList && dirList.length > 0) {
+      logError(new Error('You can only initialise existing block in empty folder.'))
+      return
+    }
+
+    const existingBlockList = await getExistingBlockList(token)
+
+    const blockChoiceList = []
+
+    existingBlockList.forEach(b => {
+      blockChoiceList.push({
+        name: b.title || b.file,
+        type: 'choice',
+        value: b
+      })
+    })
+
+    const { blockDoc } = await inquirer.prompt([{ name: 'blockDoc', message: 'Select block to initialise', type: 'list', choices: blockChoiceList }])
+
+    const blockDataInternal = {
+      blockId: blockDoc._id
+    }
+
+    const blockInfoFilePath = path.join(blockPath, BLOCK_INFO_FILE_RELATIVE_PATH)
+    fs.mkdirSync(path.dirname(BLOCK_INFO_FILE_RELATIVE_PATH), { recursive: true })
+    fs.writeFileSync(blockInfoFilePath, JSON.stringify(blockDataInternal), { encoding: 'utf8' })
+
+    logSuccess('Initialising connection...')
+    connection = await initializeBlock(blockDoc._id, machineIdSync(), token)
+    logSuccess('Connection established successfully.')
+    logSuccess('Syncing data...')
+    await pullChanges(blockDoc._id, blockPath, '', token)
+    logSuccess('Data synced successfully.')
+  } catch (err) {
+    logError(err)
+    logError('Unable to initialise block, Please try again after some time.')
+  } finally {
+    closeConnection(connection)
   }
 }
 
@@ -353,6 +401,9 @@ module.exports.addOauth = async (args) => {
 
       if (connectedOAuthDoc.name !== 'New') {
         await addTokenToBlock(blockId, parsedYamlData.id, connectedOAuthDoc._id, token)
+        if (!parsedYamlData.auths) {
+          parsedYamlData.auths = []
+        }
         parsedYamlData.auths.push({ name: oAuthDoc.app_identifier })
         fs.writeFileSync(path.join(blockPath, 'dcoder_block.yml'), Yaml.stringify(parsedYamlData), { encoding: 'utf8' })
         logSuccess('Authentication added successfully.')

@@ -13,7 +13,6 @@ module.exports.blockStatusCheck = (blockPath) => {
     }
     throw new Error('Block not configured with Dcoder.')
   } catch (err) {
-    console.error(err)
     throw new Error('Block not configured with Dcoder.')
   }
 }

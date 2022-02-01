@@ -1,6 +1,8 @@
 const path = require('path')
 
 module.exports = {
+  APP_VERSION_CODE: '550',
+  BLOCK_FS_RESOURCE_TYPE: 4,
   API_URL: 'https://testapi.dcoder.tech',
   BLOCK_API_URL: 'https://pclb475.dcoder.tech',
   BLOCK_WS_URL: 'wss://pclb475.dcoder.tech',
@@ -50,5 +52,5 @@ const main = async(inputs, auths, context) => {
 }
 
 module.exports.main = main`,
-  SYNC_IGNORE_PATH: ['.dcoder', 'dist', '.git', 'node_modules']
+  SYNC_IGNORE_PATH: ['.upm', '.dcoder', 'dist', '.git', 'node_modules']
 }
