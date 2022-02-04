@@ -5,6 +5,8 @@ const { getMyAuths } = require('../components/oAuth')
 const { createBlock, syncBlockChanges, runBlock, cloneBlock, addOauth, unlinkOAuth, linkOAuth, publishUserBlock, updateBlockInfo, initExistingBlock } = require('../components/block/block')
 const { getVersionList, createVersion } = require('../components/block/version/version')
 const { runBlockRunCommands, getBlockRunCommands } = require('../components/block/runCommand/runCommand')
+const { generateBlockReadMe } = require('../components/block/readme/readme')
+const { openSourceGuideline, contributionGuideline } = require('../components/block/openSource/openSource')
 
 const baseCommand = program.command('block').description('Block commands')
 
@@ -108,6 +110,29 @@ baseCommand
     .description('Run block run command') // command description
     .action(function () {
         runBlockRunCommands()
+    })
+
+// ========== BLOCK README COMMANDS =========================
+baseCommand
+    .command('readme') // sub-command name
+    .description('Generate block readme file') // command description
+    .action(function () {
+        generateBlockReadMe()
+    })
+
+// ========== BLOCK OPEN SOURCE COMMANDS =========================
+baseCommand
+    .command('open-source') // sub-command name
+    .description('Block open source process guideline') // command description
+    .action(function () {
+        openSourceGuideline()
+    })
+
+baseCommand
+    .command('contribution-guideline') // sub-command name
+    .description('Block open source contribution guideline') // command description
+    .action(function () {
+        contributionGuideline()
     })
 
 // ========== USER COMMANDS =========================

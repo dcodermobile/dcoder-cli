@@ -6,7 +6,7 @@ const fs = require('fs')
 const pad = require('pad')
 const inquirer = require('inquirer')
 const chalk = require('chalk')
-const { logError } = require('../utils/logging')
+const { logError, logSuccess } = require('../utils/logging')
 let WS_CONNECTION_STATE = {
   CONNECTING: 1,
   CONNECTED: 2,
@@ -330,7 +330,8 @@ module.exports.syncChanges = async (blockId, blockPath, token, syncBack) => {
   }
 }
 
-module.exports.initializeBlock = (projectId, deviceId, token, options) => {
+module.exports.initializeBlock = (projectId, blockPath, deviceId, token, options) => {
+  const self = this
   return new Promise((resolve, reject) => {
     wsState = WS_CONNECTION_STATE.CONNECTING
 
@@ -384,7 +385,14 @@ module.exports.initializeBlock = (projectId, deviceId, token, options) => {
                 console.log(pad(chalk.grey(key), 30), data.output[key])
               })
             }
-            connection.close()
+            logSuccess('Syncing changes...')
+            self.pullChanges(projectId, blockPath, '', token, false).then(res => {
+              logSuccess('Changes synced successfully.')
+              connection.close()
+            }).catch(err => {
+              logError(new Error('Unable to sync changes.'))
+              connection.close()
+            })
           }
         }
       })

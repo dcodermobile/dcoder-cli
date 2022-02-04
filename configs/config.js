@@ -52,5 +52,5 @@ const main = async(inputs, auths, context) => {
 }
 
 module.exports.main = main`,
-  SYNC_IGNORE_PATH: ['.upm', '.dcoder', 'dist', '.git', 'node_modules']
+  SYNC_IGNORE_PATH: ['.upm', '.dcoder', '.git', 'node_modules']
 }

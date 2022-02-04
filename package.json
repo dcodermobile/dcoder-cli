@@ -1,6 +1,6 @@
 {
   "name": "@dcodermobile/dcoder-cli",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,6 +17,7 @@
     "commander": "^8.0.0",
     "form-data": "^4.0.0",
     "inquirer": "^8.1.1",
+    "marked-terminal": "^4.1.1",
     "node-machine-id": "^1.1.12",
     "pad": "^3.2.0",
     "websocket": "^1.0.34",

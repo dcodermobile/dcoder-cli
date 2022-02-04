@@ -9,6 +9,7 @@ const { blockStatusCheck } = require('../../middlewares/block')
 const { BLOCK_INFO_FILE_PATH, BLOCK_FILE_PATH, BLOCK_INFO_FILE_RELATIVE_PATH, BLOCK_RUN_FILE_NAME, BLOCK_RUN_FILE_TEMPLATE_TEXT, BLOCK_FILE_NAME, BLOCK_FILE_TEMPLATE_TEXT, BLOCK_MAIN_FILE_TEMPLATE_TEXT, BLOCK_MAIN_FILE_NAME } = require('../../configs/config')
 const { getConnectedOauthList, addTokenToBlock, getAllOAuthApps, getBlockOAuths, unlinkBlockToken, getOAuthUrl } = require('../../helpers/oAuth')
 const { initializeBlock, closeConnection, pullChanges, pushChanges, sendRunEvent, syncChanges, createBlock, getBlockData, setBlockActiveDevice, publishBlock, updateBlockMetaData, getExistingBlockList } = require('../../helpers/block')
+const chalk = require('chalk')
 
 module.exports.createBlock = async (args) => {
   const blockPath = process.cwd()
@@ -76,7 +77,7 @@ module.exports.createBlock = async (args) => {
     console.log(`\nPlease make sure that your index.js file contains below function\n\n`)
     console.log(BLOCK_MAIN_FILE_TEMPLATE_TEXT)
     logSuccess('\nInitialising connection...')
-    connection = await initializeBlock(blockData.blockId, machineIdSync(), token)
+    connection = await initializeBlock(blockData.blockId, blockPath, machineIdSync(), token)
     logSuccess('Connection established successfully.')
     logSuccess('Syncing data...')
     if (shouldPull) {
@@ -141,12 +142,18 @@ module.exports.updateBlockInfo = async (args) => {
     const blockPath = process.cwd()
     const token = userAuthCheck()
     const blockId = blockStatusCheck(blockPath)
+    const blockData = await getBlockData(blockId, null, null, token)
 
     const updateData = {
-      ...(args.title && { title: args.title }),
-      ...(args.description && { description: args.description }),
-      ...(args.tags && { tags: args.tags.split(',') }),
-      ...(args.iconUrl && { icon_url: args.iconUrl })
+      title: args.title || blockData.title,
+      description: args.description || blockData.description,
+      icon_url: args.iconUrl || blockData.icon_url,
+      tags: blockData.tags,
+      auto_install_package: blockData.auto_install_package
+    }
+
+    if (args.tags) {
+      updateData.tags = args.tags.split(',')
     }
 
     if (args.autoInstallPackage) {
@@ -156,12 +163,48 @@ module.exports.updateBlockInfo = async (args) => {
         updateData.auto_install_package = false
       }
     }
-    if (Object.keys(updateData).length === 0) {
-      console.log('No data to update.')
-      return
+
+    const questions = [
+      {
+        type: 'input',
+        name: 'title',
+        message: `Enter block title`,
+        default: updateData.title
+      },
+      {
+        type: 'input',
+        name: 'description',
+        message: `Enter block description`,
+        default: updateData.description
+      },
+      {
+        type: 'input',
+        name: 'tags',
+        message: `Enter block tags(comma seperated)`,
+        ...(updateData.tags && updateData.tags.length > 0 && { default: updateData.tags.join(',') })
+      },
+      {
+        type: 'input',
+        name: 'icon_url',
+        message: `Enter block icon url`,
+        ...(updateData.icon_url && { default: updateData.icon_url })
+      },
+      {
+        type: 'confirm',
+        name: 'auto_install_package',
+        message: `Should auto install package on run?`,
+        ...('auto_install_package' in updateData && { default: updateData.auto_install_package })
+      }
+    ]
+
+    const answers = await inquirer.prompt(questions)
+
+
+    if (answers.tags) {
+      answers.tags = answers.tags.split(',')
     }
 
-    await updateBlockMetaData(blockId, updateData, token)
+    await updateBlockMetaData(blockId, answers, token)
     logSuccess('Block info updated successfully.')
   } catch (err) {
     logError(err)
@@ -211,7 +254,7 @@ module.exports.syncBlockChanges = async (args, errorRethrow, preserveSocketConne
     }
 
     logSuccess('Initialising connection...')
-    connection = await initializeBlock(blockId, currentDeviceId, token)
+    connection = await initializeBlock(blockId, blockPath, currentDeviceId, token)
     await setBlockActiveDevice(blockId, currentDeviceId, token)
     logSuccess('Connection established successfully.')
     logSuccess('Syncing changes...')
@@ -252,7 +295,7 @@ module.exports.runBlock = async (args) => {
         questions.push({
           type: 'input',
           name: inp.name,
-          message: `${inp.name}(${inp.description}) \n`,
+          message: `${inp.name}\n${chalk.grey(inp.description)}\n`,
           default: inp.default
         })
       })
@@ -302,7 +345,7 @@ module.exports.initExistingBlock = async () => {
     fs.writeFileSync(blockInfoFilePath, JSON.stringify(blockDataInternal), { encoding: 'utf8' })
 
     logSuccess('Initialising connection...')
-    connection = await initializeBlock(blockDoc._id, machineIdSync(), token)
+    connection = await initializeBlock(blockDoc._id, blockPath, machineIdSync(), token)
     logSuccess('Connection established successfully.')
     logSuccess('Syncing data...')
     await pullChanges(blockDoc._id, blockPath, '', token)
@@ -342,7 +385,7 @@ module.exports.cloneBlock = async (args) => {
     fs.writeFileSync(BLOCK_INFO_FILE_PATH, JSON.stringify(fileData), { encoding: 'utf8' })
     logSuccess(blockData.message)
     logSuccess('Initialising connection...')
-    connection = await initializeBlock(blockData._id, machineIdSync(), token)
+    connection = await initializeBlock(blockData._id, blockPath, machineIdSync(), token)
     logSuccess('Connection established successfully.')
     logSuccess('Syncing data...')
     await pullChanges(blockData._id, blockPath, '', token)
