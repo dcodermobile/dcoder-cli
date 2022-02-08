@@ -100,34 +100,67 @@ module.exports.publishUserBlock = async (args) => {
     const token = userAuthCheck()
     const blockId = blockStatusCheck(blockPath)
     const blockData = await getBlockData(blockId, null, null, token)
-    const questions = [
-      {
-        type: 'input',
-        name: 'title',
-        message: `Enter block title`,
-        default: blockData.title
-      },
-      {
-        type: 'input',
-        name: 'description',
-        message: `Enter block description`,
-        default: blockData.description
-      },
-      {
-        type: 'input',
-        name: 'tags',
-        message: `Enter block tags(comma seperated)`,
-        ...(blockData.tags && blockData.tags.length > 0 && { default: blockData.tags.join(',') })
-      },
-      {
-        type: 'input',
-        name: 'iconUrl',
-        message: `Enter block icon url`,
-        ...(blockData.icon_url && { default: blockData.icon_url })
-      }
-    ]
+    const blockPublishData = {
+      title: blockData.description,
+      description: blockData.description,
+      tags: blockData.tags,
+      icon_url: blockData.icon_url
+    }
 
-    const answers = await inquirer.prompt(questions)
+    if (args && Object.keys(args).length > 0) {
+      if (args.title) {
+        blockPublishData.title = args.title
+      }
+      if (args.description) {
+        blockPublishData.description = args.description
+      }
+
+      if (args.tags) {
+        blockPublishData.tags = args.tags.split(',')
+      }
+
+      if (args.iconUrl) {
+        blockPublishData.icon_url = args.iconUrl
+      }
+    } else {
+      const questions = [
+        {
+          type: 'input',
+          name: 'title',
+          message: `Enter block title`,
+          default: blockData.title
+        },
+        {
+          type: 'input',
+          name: 'description',
+          message: `Enter block description`,
+          default: blockData.description
+        },
+        {
+          type: 'input',
+          name: 'tags',
+          message: `Enter block tags(comma seperated)`,
+          ...(blockData.tags && blockData.tags.length > 0 && { default: blockData.tags.join(',') })
+        },
+        {
+          type: 'input',
+          name: 'iconUrl',
+          message: `Enter block icon url`,
+          ...(blockData.icon_url && { default: blockData.icon_url })
+        }
+      ]
+
+      const answers = await inquirer.prompt(questions)
+      blockPublishData.title = answers.title
+      blockPublishData.description = answers.description
+      blockPublishData.tags = answers.tags.split(',')
+      blockPublishData.icon_url = answers.iconUrl
+    }
+
+    if (!blockPublishData.title || !blockPublishData.description || !blockPublishData.tags || blockPublishData.tags.length == 0) {
+      throw new Error('Title, description or tags can not be left empty.')
+    }
+
     await this.syncBlockChanges(null, true)
     const publishRes = await publishBlock(blockId, answers.title, answers.description, answers.tags.split(','), answers.iconUrl, token)
     logSuccess(publishRes.message || 'Block submitted for publish review.')
@@ -144,64 +177,76 @@ module.exports.updateBlockInfo = async (args) => {
     const blockId = blockStatusCheck(blockPath)
     const blockData = await getBlockData(blockId, null, null, token)
 
-    const updateData = {
-      title: args.title || blockData.title,
-      description: args.description || blockData.description,
-      icon_url: args.iconUrl || blockData.icon_url,
-      tags: blockData.tags,
-      auto_install_package: blockData.auto_install_package
-    }
+    const updateData = {}
 
-    if (args.tags) {
-      updateData.tags = args.tags.split(',')
-    }
-
-    if (args.autoInstallPackage) {
-      if (args.autoInstallPackage === 'true') {
-        updateData.auto_install_package = true
-      } else if (args.autoInstallPackage === 'false') {
-        updateData.auto_install_package = false
+    if (args && Object.keys(args).length > 0) {
+      if (args.title) {
+        updateData.title = args.title
       }
-    }
-
-    const questions = [
-      {
-        type: 'input',
-        name: 'title',
-        message: `Enter block title`,
-        default: updateData.title
-      },
-      {
-        type: 'input',
-        name: 'description',
-        message: `Enter block description`,
-        default: updateData.description
-      },
-      {
-        type: 'input',
-        name: 'tags',
-        message: `Enter block tags(comma seperated)`,
-        ...(updateData.tags && updateData.tags.length > 0 && { default: updateData.tags.join(',') })
-      },
-      {
-        type: 'input',
-        name: 'icon_url',
-        message: `Enter block icon url`,
-        ...(updateData.icon_url && { default: updateData.icon_url })
-      },
-      {
-        type: 'confirm',
-        name: 'auto_install_package',
-        message: `Should auto install package on run?`,
-        ...('auto_install_package' in updateData && { default: updateData.auto_install_package })
+      if (args.description) {
+        updateData.description = args.description
       }
-    ]
+      if (args.tags) {
+        updateData.tags = args.tags.split(',')
+      }
 
-    const answers = await inquirer.prompt(questions)
+      if (args.iconUrl) {
+        updateData.icon_url = args.iconUrl
+      }
 
+      if (args.autoInstallPackage) {
+        if (args.autoInstallPackage === 'true') {
+          updateData.auto_install_package = true
+        } else if (args.autoInstallPackage === 'false') {
+          updateData.auto_install_package = false
+        }
+      }
+    } else {
+      const questions = [
+        {
+          type: 'input',
+          name: 'title',
+          message: `Enter block title`,
+          default: blockData.title
+        },
+        {
+          type: 'input',
+          name: 'description',
+          message: `Enter block description`,
+          default: blockData.description
+        },
+        {
+          type: 'input',
+          name: 'tags',
+          message: `Enter block tags(comma seperated)`,
+          ...(blockData.tags && blockData.tags.length > 0 && { default: blockData.tags.join(',') })
+        },
+        {
+          type: 'input',
+          name: 'icon_url',
+          message: `Enter block icon url`,
+          ...(blockData.icon_url && { default: blockData.icon_url })
+        },
+        {
+          type: 'confirm',
+          name: 'auto_install_package',
+          message: `Should auto install package on run?`,
+          ...('auto_install_package' in blockData && { default: blockData.auto_install_package })
+        }
+      ]
 
-    if (answers.tags) {
-      answers.tags = answers.tags.split(',')
+      const answers = await inquirer.prompt(questions)
+
+      Object.keys(answers).forEach(key => {
+        if (!answers[key] && answers[key] !== false) {
+          delete answers[key]
+        }
+      })
+
+      if (answers.tags) {
+        answers.tags = answers.tags.split(',')
+      }
+      updateData = answers
     }
 
     await updateBlockMetaData(blockId, answers, token)

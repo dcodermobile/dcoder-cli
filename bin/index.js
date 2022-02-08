@@ -44,6 +44,10 @@ baseCommand
 baseCommand
     .command('publish') // sub-command name
     .description('Publish block') // command description
+    .option('--title [value]', 'Block title')
+    .option('--description [value]', 'Block description')
+    .option('--tags [value]', 'Block tags(comma seperated)')
+    .option('--icon-url [value]', 'Block icon url')
     .action(function (args) {
         publishUserBlock(args)
     })
@@ -54,6 +58,7 @@ baseCommand
     .option('--title [value]', 'Block title')
     .option('--description [value]', 'Block description')
     .option('--tags [value]', 'Block tags(comma seperated)')
+    .option('--icon-url [value]', 'Block icon url')
     .option('--auto-install-package [value]', 'Auto install package config(true/false)')
     .action(function (args) {
         updateBlockInfo(args)
@@ -93,8 +98,10 @@ baseCommand
 baseCommand
     .command('version:create') // sub-command name
     .description('Create block version') // command description
-    .action(function () {
-        createVersion()
+    .option('--version [value]', 'Version number in MAJOR.MINOR.PATCH Format')
+    .option('--changelog [value]', 'Version change log')
+    .action(function (args) {
+        createVersion(args)
     })
 
 // ========== BLOCK RUN COMMANDS =========================
@@ -108,8 +115,9 @@ baseCommand
 baseCommand
     .command('run-command:run') // sub-command name
     .description('Run block run command') // command description
-    .action(function () {
-        runBlockRunCommands()
+    .option('--position [value]', 'Position of command in dcoder_run.yml, starts with 1')
+    .action(function (args) {
+        runBlockRunCommands(args)
     })
 
 // ========== BLOCK README COMMANDS =========================

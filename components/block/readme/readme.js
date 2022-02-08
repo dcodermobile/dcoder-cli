@@ -25,7 +25,7 @@ module.exports.generateBlockReadMe = async (args) => {
     if (shouldCreate) {
       const blockData = await getBlockData(blockId, null, null, token)
       const blockYaml = fs.readFileSync(path.join(blockPath, 'dcoder_block.yml'), { encoding: 'utf8' })
-      const readMeText = getReadmeText(blockYaml, blockId, blockData.title || blockData.file, blockData.description)
+      const readMeText = getReadmeText(blockYaml, blockId, blockData.title || blockData.file, blockData.description, blockData.last_release_version)
       fs.writeFileSync(readMeFilePath, readMeText, { encoding: 'utf8' })
       logSuccess('Readme file generated successfully.')
     }

@@ -15,18 +15,25 @@ module.exports.runBlockRunCommands = async (args) => {
       connection = syncRes.connection
     }
 
-    const blockRunCommands = runCommandSvc.getBlockRunCommands(blockPath)
-    const choiceList = []
-    for (let i = 0; i < blockRunCommands.length; i++) {
-      choiceList.push({
-        name: blockRunCommands[i],
-        type: 'choice',
-        value: i + 1
-      })
+    let position = ''
+    if (!args || !args.position) {
+      const blockRunCommands = runCommandSvc.getBlockRunCommands(blockPath)
+      const choiceList = []
+      for (let i = 0; i < blockRunCommands.length; i++) {
+        choiceList.push({
+          name: blockRunCommands[i],
+          type: 'choice',
+          value: i + 1
+        })
+      }
+
+      const { runCommandPosition } = await inquirer.prompt([{ name: 'runCommandPosition', message: 'Select command to run', type: 'list', choices: choiceList }])
+      position = runCommandPosition
+    } else {
+      position = parseInt(args.position)
     }
 
-    const { runCommandPosition } = await inquirer.prompt([{ name: 'runCommandPosition', message: 'Select command to run', type: 'list', choices: choiceList }])
-    sendRunCommandEvent(connection, runCommandPosition)
+    sendRunCommandEvent(connection, position)
   } catch (err) {
     logError(err)
     logError(new Error('Unable to run commands, please try again in some time.'))

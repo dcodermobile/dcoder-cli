@@ -1,6 +1,6 @@
 const Yaml = require('yaml')
 
-module.exports.getReadmeText = (blockYaml, blockId, title, description) => {
+module.exports.getReadmeText = (blockYaml, blockId, title, description, lastReleaseVersion) => {
   let baseReadMeFileData = `# ${title}
 [![Run On Dcoder](https://static-content.dcoder.tech/dcoder-assets/run-on-dcoder.svg)](https://code.dcoder.tech/feed/block/${blockId})
 
@@ -8,6 +8,13 @@ module.exports.getReadmeText = (blockYaml, blockId, title, description) => {
 ${description}
 
 `
+
+  if (lastReleaseVersion) {
+    baseReadMeFileData += `## Version
+${lastReleaseVersion}
+`
+  }
+
   const parsedBlockData = Yaml.parse(blockYaml)
 
   let inputMdText = '## Inputs\n'

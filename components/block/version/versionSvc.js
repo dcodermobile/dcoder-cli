@@ -27,3 +27,21 @@ module.exports.createBlockVersion = (fileId, version, changelog, token) => {
     }
   })
 }
+
+
+module.exports.isValidVersion = (version) => {
+  try {
+    if (version && typeof version === 'string') {
+      const versionArray = version.split('.')
+      if (versionArray && versionArray.length === 3) {
+        const major = parseInt(versionArray[0])
+        const minor = parseInt(versionArray[1])
+        const patch = parseInt(versionArray[2])
+        return true
+      }
+    }
+    return false
+  } catch (err) {
+    return false
+  }
+}
