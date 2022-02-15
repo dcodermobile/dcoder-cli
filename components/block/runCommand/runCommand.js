@@ -27,7 +27,12 @@ module.exports.runBlockRunCommands = async (args) => {
         })
       }
 
-      const { runCommandPosition } = await inquirer.prompt([{ name: 'runCommandPosition', message: 'Select command to run', type: 'list', choices: choiceList }])
+      const { runCommandPosition } = await inquirer.prompt([{
+        name: 'runCommandPosition',
+        message: 'Select command to run',
+        type: /^win/.test(process.platform) ? 'rawlist' : 'list',
+        choices: choiceList
+      }])
       position = runCommandPosition
     } else {
       position = parseInt(args.position)

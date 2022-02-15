@@ -294,7 +294,12 @@ module.exports.syncBlockChanges = async (args, errorRethrow, preserveSocketConne
         }
       ]
 
-      const userRes = await inquirer.prompt([{ name: 'syncDeviceId', message: 'Looks like there are some changes as sync was active on another device, Do you want to accept changes of that device or current device?', type: 'list', choices: choiceList }])
+      const userRes = await inquirer.prompt([{
+        name: 'syncDeviceId',
+        message: 'Looks like there are some changes as sync was active on another device, Do you want to accept changes of that device or current device?',
+        type: /^win/.test(process.platform) ? 'rawlist' : 'list',
+        choices: choiceList
+      }])
       syncDeviceId = userRes.syncDeviceId
     }
 
@@ -379,7 +384,12 @@ module.exports.initExistingBlock = async () => {
       })
     })
 
-    const { blockDoc } = await inquirer.prompt([{ name: 'blockDoc', message: 'Select block to initialise', type: 'list', choices: blockChoiceList }])
+    const { blockDoc } = await inquirer.prompt([{
+      name: 'blockDoc',
+      message: 'Select block to initialise',
+      type: /^win/.test(process.platform) ? 'rawlist' : 'list',
+      choices: blockChoiceList
+    }])
 
     const blockDataInternal = {
       blockId: blockDoc._id
@@ -463,7 +473,12 @@ module.exports.addOauth = async (args) => {
       })
     })
 
-    const { oAuthDoc } = await inquirer.prompt([{ name: 'oAuthDoc', message: 'Select authentication', type: 'list', choices: choiceList }])
+    const { oAuthDoc } = await inquirer.prompt([{
+      name: 'oAuthDoc',
+      message: 'Select authentication',
+      type: /^win/.test(process.platform) ? 'rawlist' : 'list',
+      choices: choiceList
+    }])
 
     const blockYaml = fs.readFileSync(path.join(blockPath, 'dcoder_block.yml'), { encoding: 'utf8' })
     const parsedYamlData = Yaml.parse(blockYaml)
@@ -485,7 +500,12 @@ module.exports.addOauth = async (args) => {
         type: 'choice'
       })
 
-      const { connectedOAuthDoc } = await inquirer.prompt([{ message: 'Select from connected authentications', name: 'connectedOAuthDoc', type: 'list', choices: connectedAuthChoiceList }])
+      const { connectedOAuthDoc } = await inquirer.prompt([{
+        message: 'Select from connected authentications',
+        name: 'connectedOAuthDoc',
+        type: /^win/.test(process.platform) ? 'rawlist' : 'list',
+        choices: connectedAuthChoiceList
+      }])
 
       if (connectedOAuthDoc.name !== 'New') {
         await addTokenToBlock(blockId, parsedYamlData.id, connectedOAuthDoc._id, token)
@@ -561,7 +581,12 @@ module.exports.linkOAuth = async (args) => {
       return
     }
 
-    const { oAuthIdentifier } = await inquirer.prompt([{ name: 'oAuthIdentifier', message: 'Select authentication', type: 'list', choices: oAuthConnectChoiceList }])
+    const { oAuthIdentifier } = await inquirer.prompt([{
+      name: 'oAuthIdentifier',
+      message: 'Select authentication',
+      type: /^win/.test(process.platform) ? 'rawlist' : 'list',
+      choices: oAuthConnectChoiceList
+    }])
 
 
     const authAppList = await getAllOAuthApps(token, [oAuthIdentifier])
@@ -591,7 +616,12 @@ module.exports.linkOAuth = async (args) => {
         type: 'choice'
       })
 
-      const { connectedOAuthDoc } = await inquirer.prompt([{ message: 'Select from connected authentications', name: 'connectedOAuthDoc', type: 'list', choices: connectedAuthChoiceList }])
+      const { connectedOAuthDoc } = await inquirer.prompt([{
+        message: 'Select from connected authentications',
+        name: 'connectedOAuthDoc',
+        type: /^win/.test(process.platform) ? 'rawlist' : 'list',
+        choices: connectedAuthChoiceList
+      }])
 
       if (connectedOAuthDoc.name !== 'New') {
         await addTokenToBlock(blockId, parsedYamlData.id, connectedOAuthDoc._id, token)
@@ -643,7 +673,12 @@ module.exports.unlinkOAuth = async (args) => {
       })
     }
 
-    const { connectedOAuth } = await inquirer.prompt([{ message: 'Select from connected authentications to unlink', name: 'connectedOAuth', type: 'list', choices: connectedAuthChoiceList }])
+    const { connectedOAuth } = await inquirer.prompt([{
+      message: 'Select from connected authentications to unlink',
+      name: 'connectedOAuth',
+      type: /^win/.test(process.platform) ? 'rawlist' : 'list',
+      choices: connectedAuthChoiceList
+    }])
     const { block_id, oauth_token_id } = connectedOAuth
     await unlinkBlockToken(blockId, block_id, oauth_token_id, token)
     console.log('OAuth unlinked successfully.')
