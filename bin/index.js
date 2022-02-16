@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const program = require('commander')
+const packageJson = require('../package.json')
 const { userLogin } = require('../components/user')
 const { getMyAuths } = require('../components/oAuth')
 const { createBlock, syncBlockChanges, runBlock, cloneBlock, addOauth, unlinkOAuth, linkOAuth, publishUserBlock, updateBlockInfo, initExistingBlock } = require('../components/block/block')
@@ -158,6 +159,13 @@ program
     .action(function () {
         getMyAuths()
     })
+
+program
+    .option('-v, --version', 'Dcoder cli version')
+    .action(function () {
+        console.log(packageJson.version)
+    })
+
 
 
 // allow commander to parse `process.argv`
