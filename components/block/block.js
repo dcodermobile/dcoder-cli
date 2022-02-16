@@ -162,7 +162,7 @@ module.exports.publishUserBlock = async (args) => {
     }
 
     await this.syncBlockChanges(null, true)
-    const publishRes = await publishBlock(blockId, answers.title, answers.description, answers.tags.split(','), answers.iconUrl, token)
+    const publishRes = await publishBlock(blockId, blockPublishData.title, blockPublishData.description, blockPublishData.tags, blockPublishData.icon_url, token)
     logSuccess(publishRes.message || 'Block submitted for publish review.')
   } catch (err) {
     logError(err)
@@ -177,7 +177,7 @@ module.exports.updateBlockInfo = async (args) => {
     const blockId = blockStatusCheck(blockPath)
     const blockData = await getBlockData(blockId, null, null, token)
 
-    const updateData = {}
+    let updateData = {}
 
     if (args && Object.keys(args).length > 0) {
       if (args.title) {
@@ -249,11 +249,11 @@ module.exports.updateBlockInfo = async (args) => {
       updateData = answers
     }
 
-    await updateBlockMetaData(blockId, answers, token)
+    await updateBlockMetaData(blockId, updateData, token)
     logSuccess('Block info updated successfully.')
   } catch (err) {
     logError(err)
-    logError(new Error('Unable to publish, please try again in some time.'))
+    logError(new Error('Unable to update info, please try again in some time.'))
   }
 }
 
